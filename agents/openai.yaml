@@ -1,4 +1,4 @@
 interface:
   display_name: "Chat"
-  short_description: "Code-aware guided requirement discovery"
-  default_prompt: "Use $chat to discuss my rough project idea, inspect the codebase, ask many guiding questions, and shape it into a confirmed implementation plan."
+  short_description: "Code-aware discovery for unclear project ideas"
+  default_prompt: "Use $chat to discuss my rough project idea, inspect the codebase, ask targeted follow-up questions, compare tradeoffs, offer a standalone frontend demo loop when UI direction needs validation, and shape it into a confirmed implementation plan with acceptance criteria."

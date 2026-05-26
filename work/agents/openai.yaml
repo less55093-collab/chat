@@ -1,4 +1,4 @@
 interface:
   display_name: "Work"
-  short_description: "Stepwise implementation with review loops"
-  default_prompt: "Use $work to execute my confirmed implementation plan one step at a time, with testing and review after each step."
+  short_description: "Stepwise execution of a confirmed plan"
+  default_prompt: "Use $work to execute my confirmed implementation plan one step at a time, preserving approved frontend demo decisions when present, with acceptance criteria, focused verification, review after each step, and final whole-change validation."
