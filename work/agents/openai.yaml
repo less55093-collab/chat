@@ -1,0 +1,4 @@
+interface:
+  display_name: "Work"
+  short_description: "Stepwise implementation with review loops"
+  default_prompt: "Use $work to execute my confirmed implementation plan one step at a time, with testing and review after each step."

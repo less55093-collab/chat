@@ -153,21 +153,28 @@ Before producing a confirmation-ready plan, verify plan readiness:
 
 If any readiness item fails, continue the interview.
 
-When enough answers are collected, produce a confirmation-ready plan:
+When enough answers are collected, produce a confirmation-ready plan. The plan must be step-by-step, not a dense block of prose. Each step must be independently understandable and verifiable.
 
 - Problem statement
 - Current code context
 - Goals
 - Non-goals
-- User-facing behavior
-- Technical approach
-- Files or modules likely touched
-- Data/API changes if any
-- Test and verification plan
+- Step-by-step implementation plan
 - Risks and open questions
-- Suggested implementation phases
+- Confirmation question
 
-End by asking the user to confirm or revise the plan. Do not begin implementation until the user confirms or explicitly asks to proceed.
+For each implementation step, include:
+
+- Step name
+- Purpose
+- Exact work to do
+- Likely files or modules touched
+- Verification for that step
+- Dependencies on earlier steps
+
+Do not merge multiple unrelated changes into one step. Prefer 3-8 clear steps for normal work. If a step cannot be verified independently, split it smaller or explain why it must stay coupled.
+
+End by asking the user to confirm or revise the plan. Mention that after confirmation the user can invoke `$work` to execute the plan step by step with review after every step. Do not begin implementation until the user confirms or explicitly asks to proceed.
 
 ## Output Patterns
 
@@ -193,16 +200,25 @@ Here is the plan I would implement if you confirm:
 Problem:
 ...
 
-Approach:
+Current code context:
 ...
 
-Phases:
-1. ...
-2. ...
+Step 1 - ...
+Purpose: ...
+Work: ...
+Likely files: ...
+Verification: ...
+Depends on: none
 
-Verification:
+Step 2 - ...
+Purpose: ...
+Work: ...
+Likely files: ...
+Verification: ...
+Depends on: Step 1
+
+Risks / open questions:
 ...
 
-Open decisions:
-...
+If this matches your intent, confirm it. After that you can use $work to implement it one step at a time with a review loop after each step.
 ```
