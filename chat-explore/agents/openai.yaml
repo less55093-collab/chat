@@ -1,0 +1,4 @@
+interface:
+  display_name: "Chat Explore"
+  short_description: "Read-only /explore divergent solution generation"
+  default_prompt: "Use /explore to generate five sharply distinct solution approaches, estimate how likely you would be to generate each approach with a 1-10 score, label each as 常见, 少见, or 极度罕见, and compare the options without changing files, installing dependencies, staging, committing, or pushing."

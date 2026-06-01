@@ -9,7 +9,7 @@ description: Read-only, code-aware requirement discovery through extended conver
 
 Use this skill to turn an unclear project idea into a grounded, confirmation-ready plan draft through code-aware conversation only. Bias toward sustained questioning over premature planning: ask fewer questions per turn, ask more follow-ups over time, and do not advance until the user's intent is actually understood.
 
-When the plan is ready, `$chat` must break the work into small task capsules that `$work` can execute directly. `$chat` may draft a `WORK_STATE.md` state machine in the conversation, but it must not write that file or any other workspace file.
+When the plan is ready, `$chat` must decide the execution mode for `$work`. Small tasks should be marked `simple-main` so `$work` can execute them directly with the main agent, without a state machine or child agent. Larger tasks should be broken into task capsules, and `$chat` should draft a `WORK_STATE.md` state machine only when the chosen execution mode needs one. `$chat` must not write that file or any other workspace file.
 
 ## Applicability Gate
 
@@ -33,6 +33,7 @@ Do not use this skill when the user asks for a direct, already-scoped change, a 
 - Use only read-only inspection commands and code-intelligence tools while `$chat` is active. After a `$chat` plan, workspace edits are allowed only when the user explicitly invokes `$work`.
 - After `$chat`, do not treat informal approval such as "sounds good", "start", "go ahead", "you change it", or "按这个做" as permission to edit. Workspace edits are allowed only after the user explicitly invokes `$work`.
 - Every `$chat` response must include an understanding check: what the agent currently understands, what remains uncertain, and whether the latest user message changes the plan.
+- Before handing off to `$work`, classify the work as `simple-main`, `state-main`, or `delegated-state`, and explain why.
 - Do not produce a final plan before inspecting the project enough to understand the current business flow, relevant modules, constraints, and existing patterns.
 - Do not produce a solution plan until the user has confirmed the agent's understanding or the conversation has resolved the core ambiguity with clear evidence.
 - Do not treat a long list of questions as a conversation. Ask 1-3 high-leverage questions per turn by default.
@@ -200,6 +201,7 @@ When enough answers are collected, produce a confirmation-ready plan draft. The 
 - Non-goals
 - Acceptance criteria
 - Frontend demo recommendation or decision, if relevant
+- Execution mode: `simple-main`, `state-main`, or `delegated-state`
 - Step-by-step implementation plan
 - Risks and open questions
 - Confirmation question
@@ -223,9 +225,21 @@ Do not merge multiple unrelated changes into one step. Prefer 3-8 clear steps fo
 
 End by asking the user to confirm or revise the plan. State clearly that even after confirmation, implementation and workspace edits require an explicit `$work` invocation. Do not begin implementation while `$chat` is active.
 
-### 6.5 Draft The `$work` State Machine
+### 6.5 Decide `$work` Execution Mode
 
-When the plan is ready, draft a root `WORK_STATE.md` in the conversation for `$work` to create later. Do not write the file in `$chat`.
+Classify the implementation before handoff:
+
+- `simple-main`: small, low-risk, easy to verify, usually one or two files, no meaningful benefit from child-agent delegation. `$work` should not create `WORK_STATE.md`; the main agent implements and verifies directly.
+- `state-main`: multiple dependent steps or resumability matters, but child-agent delegation would add more overhead than value. `$work` should create or update `WORK_STATE.md`; the main agent implements and verifies each task.
+- `delegated-state`: enough complexity, uncertainty, or separable ownership to benefit from child-agent implementation. `$work` should create or update `WORK_STATE.md`, assign active tasks to child agents as specified, and keep main-agent verification as the gate.
+
+Prefer `simple-main` for small skill edits, copy tweaks, single-file fixes, metadata updates, narrow documentation changes, and low-risk reversible changes.
+
+Use `state-main` or `delegated-state` when the work has multiple phases, broad file ownership, risky integration, unknown test shape, or likely interruptions.
+
+### 6.6 Draft The `$work` State Machine When Needed
+
+Draft a root `WORK_STATE.md` in the conversation only for `state-main` or `delegated-state`. Do not draft one for `simple-main`, and never write the file in `$chat`.
 
 The draft should include:
 
@@ -246,7 +260,7 @@ main_verify -> needs_fix -> assigned
 done -> ready(next task)
 ```
 
-Each task should be a task capsule that `$work` can assign to one child agent without exposing the whole project ambition.
+For `delegated-state`, each task should be a task capsule that `$work` can assign to one child agent without exposing the whole project ambition.
 
 ## Handoff Contract for `$work`
 
@@ -256,9 +270,10 @@ The final `$chat` plan draft should be clear enough for `$work` after the user c
 - explicit goals, non-goals, and deferred decisions
 - user-visible acceptance criteria for the whole change
 - frontend demo recommendation, declined-demo note, or externally approved demo path/URL and design decisions when available
+- execution mode with rationale: `simple-main`, `state-main`, or `delegated-state`
 - 3-8 ordered implementation steps unless the work is unusually small or large
 - per-step purpose, exact work, likely files/modules, allowed read scope, allowed write scope, child-agent context, hidden context, acceptance criteria, verification commands or manual checks, and dependencies
-- a draft `WORK_STATE.md` state machine for `$work` to create after explicit invocation
+- a draft `WORK_STATE.md` state machine only when the execution mode is `state-main` or `delegated-state`
 - final verification expectations for the completed change
 - risks, migration notes, rollout notes, or rollback notes when relevant
 
@@ -267,7 +282,7 @@ If any of those items are unknown, list them under risks or open questions inste
 Strict handoff rule:
 
 - `$chat` confirmation is not implementation permission.
-- Only an explicit `$work` invocation may create `WORK_STATE.md` or modify workspace files.
+- Only an explicit `$work` invocation may modify workspace files or create `WORK_STATE.md` when the chosen execution mode needs one.
 - If the user approves the plan without `$work`, remind them of the boundary and keep the conversation read-only.
 
 ## Output Patterns
@@ -305,6 +320,10 @@ Recommended: yes/no
 Decision: declined / defer / create outside $chat / external demo approved
 Approved direction or open question: ...
 
+Execution mode:
+simple-main | state-main | delegated-state
+Rationale: ...
+
 Step 1 - ...
 Purpose: ...
 Work: ...
@@ -332,7 +351,7 @@ Depends on: Step 1
 Risks / open questions:
 ...
 
-Draft WORK_STATE.md:
+Draft WORK_STATE.md, only if execution mode is state-main or delegated-state:
 ...
 
 If this matches your intent, confirm it. Even after confirmation, I will not edit files unless you explicitly invoke $work.
