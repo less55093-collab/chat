@@ -1,0 +1,4 @@
+interface:
+  display_name: "Chat Init"
+  short_description: "Initialize projects through multi-role discovery"
+  default_prompt: "Use $chat-init to initialize a new project through multi-role requirement discovery, similar-project research, document selection, confirmation, and project documentation scaffolding."

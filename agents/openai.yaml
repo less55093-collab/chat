@@ -1,4 +1,4 @@
 interface:
   display_name: "Chat"
-  short_description: "Read-only code-aware discovery for unclear ideas"
-  default_prompt: "Use $chat to discuss my rough project idea in read-only mode, inspect the codebase, ask targeted follow-up questions, compare tradeoffs, and shape a confirmation-ready plan draft without changing files, creating prototypes, installing dependencies, committing, or pushing."
+  short_description: "Read-only discovery with $work task handoff"
+  default_prompt: "Use $chat to discuss my rough project idea in read-only mode, inspect the codebase, check understanding every turn, ask targeted follow-up questions, compare tradeoffs, and shape a $work-ready plan with atomic task capsules and a draft WORK_STATE.md. Do not change files or start implementation unless I explicitly invoke $work."

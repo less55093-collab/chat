@@ -1,4 +1,4 @@
 interface:
   display_name: "Work"
-  short_description: "Stepwise execution of a confirmed plan"
-  default_prompt: "Use $work to execute my confirmed implementation plan one step at a time, preserving approved frontend demo decisions when present, with acceptance criteria, focused verification, review after each step, and final whole-change validation."
+  short_description: "State-machine execution with delegated tasks"
+  default_prompt: "Use $work after I have explicitly approved a $chat plan. Create or update root WORK_STATE.md, execute one atomic task at a time, assign each active task to one child agent with allowed read/write scopes, handle file access requests, run main-agent verification, update state transitions, and finish with whole-change validation."

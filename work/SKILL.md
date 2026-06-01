@@ -1,133 +1,256 @@
 ---
 name: work
-description: Stepwise implementation workflow for an already confirmed plan. Use when the user invokes $work or asks Codex to execute a confirmed step-by-step plan with acceptance criteria, focused verification, independent review when available, fixes until review passes, and final whole-change validation. Works especially well after $chat has produced and the user has confirmed an implementation plan. Do not use to invent a plan from scratch.
+description: Execute a confirmed $chat plan through a root WORK_STATE.md state machine, one atomic task at a time. Use when the user explicitly invokes $work after approving a plan with task capsules. The main agent owns state, scope, child-agent assignment, file-access decisions, diff review, focused verification, fix loops, and final validation. A single child agent implements each active task with only the allowed context and must request access to files outside its allowed scope.
 ---
 
 # Work
 
 ## Overview
 
-Use this skill to execute an already confirmed implementation plan in small, verifiable steps. Complete one step at a time, run tests for that step, request an independent child/subagent review when available, fix any issues, repeat review until the step passes, then move to the next step.
+Use this skill to execute an already confirmed implementation plan. `$work` does not invent or materially reshape the plan; it consumes `$chat` task capsules, creates or refreshes root `WORK_STATE.md`, assigns one atomic task at a time to a single child agent, and verifies the result before moving forward.
+
+The main agent is responsible for orchestration, file-access decisions, integration, tests, state transitions, and final completion evidence. The child agent is responsible for implementing only the assigned task inside its allowed scope.
 
 ## Operating Contract
 
-- Do not use this skill to invent the plan from scratch. If there is no confirmed plan, ask the user to confirm a step-by-step plan first or switch to `$chat`.
-- Do not implement multiple planned steps at once unless they are technically inseparable; explain the coupling before proceeding.
-- Do not move to the next step while the current step has failing tests, unresolved review findings, or unclear acceptance criteria.
-- Do not treat self-review as a substitute for independent review when child/subagent tooling is available.
-- Do not make destructive changes, rewrite unrelated areas, or expand scope beyond the confirmed step without user confirmation.
-- Preserve user changes in the worktree. Inspect diffs before editing and never revert unrelated work.
+- Run only after the user explicitly invokes `$work`.
+- Require a confirmed plan with atomic task capsules. If there is no usable plan, stop and ask the user to return to `$chat`.
+- Create or update root `WORK_STATE.md` before implementation begins, using the confirmed task capsules as the source material.
+- Treat `WORK_STATE.md` as the source of truth for active task, state transitions, allowed scopes, verification, blockers, and handoff notes.
+- Execute one active task at a time. Do not start the next task until the current task is verified and marked `done`.
+- Assign each active task to exactly one child agent when child-agent tooling is available.
+- Give the child only need-to-know context: task purpose, allowed read/write scopes, acceptance criteria, verification expectations, and explicit non-goals.
+- Preserve user changes. Inspect worktree status and relevant diffs before editing or integrating child changes. Never revert unrelated changes.
+- Do not make destructive changes, rewrite unrelated areas, or expand scope beyond the active task without user confirmation.
+- Do not let a child agent approve its own work. The main agent must verify the diff and run or inspect the relevant checks.
+- Treat `ready -> assigned -> implementing` as administrative transitions. They require a recorded state update but not diff/test verification.
+- Treat `self_check -> main_verify -> done` as verification-gated transitions. The main agent must inspect the diff and run or review focused checks before marking a task `done` or activating the next task.
+- If child-agent tooling is unavailable, record the limitation in `WORK_STATE.md`, perform the smallest safe local fallback, and say that independent delegated implementation was unavailable.
 
 ## Startup Gate
 
-Before editing files, confirm that the execution inputs are ready:
+Before editing implementation files:
 
-1. A step-by-step plan exists and the user has confirmed it, or the user explicitly asked to execute a specific plan.
-2. Each step has a purpose, expected work, likely files/modules, acceptance criteria, and focused verification.
-3. Dependencies between steps are known enough to choose the first active step.
-4. The current worktree status and relevant diffs have been inspected so user-owned changes are preserved.
-5. The final whole-change verification commands or manual checks are identified.
-6. If the plan references an approved frontend demo, its path/URL and approved design decisions are available and treated as implementation constraints.
+1. Confirm the user explicitly invoked `$work`.
+2. Confirm a step-by-step plan exists and was approved after `$chat`, or the user supplied an equivalent atomic task plan.
+3. Confirm every task has purpose, work, allowed read scope, allowed write scope, acceptance criteria, verification, dependencies, and rollback or compatibility notes when relevant.
+4. Inspect git status and relevant diffs so user-owned changes are preserved.
+5. Create or refresh root `WORK_STATE.md` with task IDs, statuses, state machine rules, active task, file-access log, and transition log.
+6. Mark only the first unblocked task as `ready`; all dependent tasks remain `pending`.
+7. Identify the final whole-change verification commands or manual checks.
 
-If the plan is missing acceptance criteria or verification, derive the smallest reasonable interpretation from the conversation and ask the user to confirm the missing decision before editing. If there is no usable plan, stop and ask the user to confirm a step-by-step plan first or switch to `$chat`.
+If the plan is missing critical task boundaries, do not improvise implementation. Ask the user to return to `$chat` or provide the missing task capsule details.
 
-## Step Loop
+## WORK_STATE.md Format
 
-For each plan step, run this loop:
+Use root `WORK_STATE.md` unless the user confirmed a different path. Keep it concise and update it at every state transition.
 
-1. Restate the active step.
-2. Identify the files, tests, acceptance criteria, dependencies, and relevant pre-existing user changes for this step.
-3. Implement only this step.
-4. Run focused verification for this step.
-5. Ask a child/subagent to review and test the step when available.
-6. If the review fails, fix the issues and repeat verification plus review.
-7. Mark the step complete only when implementation, tests, and review all pass.
-8. Summarize the completed step and continue to the next step.
+Minimum sections:
 
-## Child Review Protocol
+- `Status`: `planned`, `in_progress`, `blocked`, or `complete`
+- `Current task`
+- `Rules`
+- `State Machine`
+- `Tasks`
+- `Active Task`
+- `File Access Requests`
+- `Transition Log`
 
-Use a child/subagent for each completed step when the environment supports it. Give the reviewer a bounded prompt:
+Default transitions:
 
 ```text
-Review and test only Step N of this implementation.
+pending -> ready -> assigned -> implementing -> self_check -> main_verify -> done
+pending -> blocked
+main_verify -> needs_fix -> assigned
+done -> ready(next task)
+```
 
-Plan step:
+Task table columns:
+
+- `ID`
+- `Status`
+- `Task`
+- `Depends On`
+- `Allowed Read`
+- `Allowed Write`
+- `Verification`
+
+## Task Capsule Requirements
+
+Each active task must be narrow enough for one child agent to implement without seeing the whole project ambition.
+
+Required fields:
+
+- Task ID and title
+- Purpose
+- Exact work
+- Allowed read scope
+- Allowed write scope
+- Context to provide to the child agent
+- Context to hide unless requested
+- Explicit non-goals
+- Acceptance criteria
+- Focused verification
+- Dependencies
+- Rollback, migration, or compatibility notes when relevant
+
+If any required field is missing, keep the task in `blocked` or ask the user for clarification instead of assigning vague work.
+
+## Delegated Task Loop
+
+For each active task:
+
+1. Update `WORK_STATE.md`: task `ready -> assigned`.
+2. Build a child-agent brief from the task capsule.
+3. Assign the task to one child agent. The child may edit only the allowed write scope and may inspect only the allowed read scope.
+4. Update `WORK_STATE.md`: task `assigned -> implementing`.
+5. While the child works, avoid overlapping edits in the same write scope.
+6. When the child reports completion, require a self-check summary: files changed, checks run, risks, and any file access requests made.
+7. Update `WORK_STATE.md`: task `implementing -> self_check -> main_verify`.
+8. Main agent inspects the diff and runs or reviews focused verification.
+9. If verification passes, mark task `done`, update transition log, and activate the next unblocked task.
+10. If verification fails, summarize the failure, mark `needs_fix`, and send the same child a repair brief or perform the smallest safe local fix if delegation is unavailable.
+
+Do not continue to later tasks while the current task has failing checks, unresolved diff concerns, or unclear ownership.
+
+## Transition Discipline
+
+Every state transition must be recorded in `WORK_STATE.md`, but not every transition has the same verification burden:
+
+- Administrative transitions (`pending -> ready`, `ready -> assigned`, `assigned -> implementing`) prove scheduling and ownership only. Record the transition and the reason.
+- Child completion transitions (`implementing -> self_check`) require the child's completion report.
+- Verification transitions (`self_check -> main_verify`, `main_verify -> done`, `main_verify -> needs_fix`) require main-agent review evidence.
+- A task may not move to `done`, and the next task may not become active, until main-agent verification passes or the task is explicitly blocked.
+
+## Child Agent Brief
+
+Use this shape when assigning work:
+
+```text
+Implement only Task T-XXX.
+
+You are not alone in the codebase. Preserve existing user and agent changes. Do not revert unrelated work.
+
+Purpose:
 ...
 
-Files changed for this step:
+Allowed read:
+...
+
+Allowed write:
+...
+
+Context provided:
+...
+
+Hidden unless requested:
+...
+
+Non-goals:
 ...
 
 Acceptance criteria:
 ...
 
-Run or inspect the most relevant tests. Report:
-- pass/fail
-- bugs or regressions
-- missing verification
-- whether the step is complete enough to proceed
+Focused verification:
+...
+
+File access rule:
+You may inspect files inside Allowed read. For anything else, stop and request access using the File Access Request format. Do not read or modify outside the allowed scope without approval.
+
+Report:
+- files changed
+- checks run and results
+- risks or blockers
+- file access requests
 ```
 
-The child/subagent should be independent: do not ask it to approve the work by default, and do not hide known failures.
+## File Access Requests
 
-If child/subagent tooling is not available, perform an explicit local review pass yourself and say that independent subagent review was unavailable. The fallback review must still inspect the diff, run relevant tests, and challenge whether the step is complete.
+A child agent must request access before reading or modifying files outside the allowed scope.
 
-## Review Failure Handling
+Request format:
 
-When review or tests fail:
+```text
+File Access Request:
+- Requested file/path:
+- Why needed:
+- What decision depends on it:
+- Minimum useful scope: summary | excerpt | full file | expanded write scope
+- Risk if not granted:
+```
 
-- Keep the same active step.
-- Summarize the failure.
-- Fix only issues relevant to the active step.
-- Re-run focused verification.
-- Re-run child/subagent review when available.
-- Continue until the step passes or a real blocker requires user input.
+Main-agent decision options:
 
-Do not continue to later steps with known failures.
+- `deny`: file is unrelated or would expand scope.
+- `summarize`: main agent reads the file and gives a short summary.
+- `excerpt`: main agent provides only the relevant function, type, config, or test snippet.
+- `grant-read`: child may inspect the full file.
+- `grant-write`: child may edit the file; update `WORK_STATE.md` allowed write scope first.
 
-## Verification Expectations
+Prefer the smallest disclosure that lets the child finish the active task. Record every request and decision in `WORK_STATE.md`.
 
-Choose the lightest verification that proves the active step:
+## Main Verification
 
+The main agent must verify every task before it is marked `done`.
+
+Use the lightest check that proves the task:
+
+- manual diff review for documentation-only changes
 - unit tests for pure logic
-- integration tests for API, persistence, or cross-module behavior
+- integration tests for APIs, persistence, or cross-module behavior
 - e2e/manual browser checks for user-facing workflows
-- typecheck/lint when the step touches shared code or typed contracts
-- security review when the step touches auth, permissions, secrets, payments, or user-controlled input
+- typecheck/lint when typed or shared contracts changed
+- security review when auth, permissions, secrets, payments, or user-controlled input changed
 
-Read test output before claiming success. If a verification command cannot run, explain why and use the next-best check.
+Read verification output before claiming success. If a command cannot run, explain why, record the limitation in `WORK_STATE.md`, and run the strongest narrower check available.
 
-After all planned steps pass, run a final verification sweep that proves the integrated change still works. Prefer the repository's normal lint, typecheck, unit/integration test, build, or e2e commands when applicable. If the final sweep is too expensive or unavailable, explain the constraint and run the strongest narrower checks that still support the completion claim.
+## Repair Loop
+
+When checks or review fail:
+
+- Keep the same active task.
+- Mark task `needs_fix` in `WORK_STATE.md`.
+- Summarize the failure with concrete evidence.
+- Send the same child a bounded repair brief when available.
+- Keep the same allowed write scope unless the failure proves a scope change is required.
+- Re-run focused verification after the fix.
+- Repeat until the task passes or a real blocker requires user input.
 
 ## Progress Format
 
 Use a compact progress ledger:
 
 ```text
-Active step: 2 - ...
-Status: implementing | verifying | review-failed | complete
+Active task: T-002 - ...
+Status: assigned | implementing | self_check | main_verify | needs_fix | done
+Child agent: ...
+Allowed read: ...
+Allowed write: ...
 Changed files: ...
 Verification: ...
-Reviewer verdict: ...
+State update: ...
 Next: ...
 ```
 
-After each completed step, report:
+After each completed task:
 
 ```text
-Step N complete.
+Task T-002 complete.
 Implemented: ...
 Verified: ...
-Review: passed
-Remaining: Step N+1 - ...
+State: done
+Remaining: T-003 - ...
 ```
 
 ## Completion
 
-When all steps are complete:
+When all tasks are complete:
 
-- summarize all changed files
-- summarize tests and reviews run
-- summarize the final whole-change verification result
-- for frontend work based on an approved demo, summarize how the implementation matches or intentionally differs from the demo
-- note any remaining risks or deferred items
-- confirm that every planned step passed its verification loop
+- run the final whole-change verification sweep identified at startup
+- update `WORK_STATE.md` status to `complete`
+- summarize changed files
+- summarize child-agent work and main-agent verification
+- summarize final verification result
+- note remaining risks, skipped checks, or deferred items
+- confirm that every planned task reached `done`

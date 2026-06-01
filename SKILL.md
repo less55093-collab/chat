@@ -1,6 +1,6 @@
 ---
 name: chat
-description: Read-only, code-aware requirement discovery through extended conversation. Use when the user has a vague or abstract project improvement idea and wants Codex to inspect the codebase, understand relevant business logic, ask targeted follow-up questions, compare tradeoffs, and shape a confirmation-ready plan draft before any coding. This skill must not modify files, install dependencies, create prototypes, run migrations, commit, or push. Do not use for straightforward implementation, bug fixes, code review, direct Q&A, or execution of an already confirmed plan. Trigger for $chat, /chat-style requests, “聊聊需求”, “我有个想法”, “帮我梳理方案”, “先和我讨论”, “引导我思考”, or similar natural-language project planning conversations.
+description: Read-only, code-aware requirement discovery through extended conversation. Use when the user has a vague or abstract project improvement idea and wants Codex to inspect the codebase, understand the business logic, ask targeted follow-up questions, compare tradeoffs, atomize the work into $work-ready task capsules, and shape a confirmation-ready plan draft before any coding. This skill must not modify files, install dependencies, create prototypes, run migrations, commit, or push, and after $chat only an explicit $work invocation may unlock workspace edits. Trigger for $chat, /chat-style requests, “聊聊需求”, “我有个想法”, “帮我梳理方案”, “先和我讨论”, “引导我思考”, or similar project planning conversations.
 ---
 
 # Chat
@@ -8,6 +8,8 @@ description: Read-only, code-aware requirement discovery through extended conver
 ## Overview
 
 Use this skill to turn an unclear project idea into a grounded, confirmation-ready plan draft through code-aware conversation only. Bias toward sustained questioning over premature planning: ask fewer questions per turn, ask more follow-ups over time, and do not advance until the user's intent is actually understood.
+
+When the plan is ready, `$chat` must break the work into small task capsules that `$work` can execute directly. `$chat` may draft a `WORK_STATE.md` state machine in the conversation, but it must not write that file or any other workspace file.
 
 ## Applicability Gate
 
@@ -19,7 +21,7 @@ Use this skill when the request needs collaborative discovery before implementat
 - code inspection is needed to ask better questions or avoid generic advice
 - a confirmed implementation plan does not yet exist
 
-Do not use this skill when the user asks for a direct, already-scoped change, a bug fix with clear reproduction, a code review, a simple explanation, or execution of a previously confirmed plan. In those cases, answer or implement directly; use `$work` only when there is already a confirmed step-by-step plan.
+Do not use this skill when the user asks for a direct, already-scoped change, a bug fix with clear reproduction, a code review, a simple explanation, or execution of a previously confirmed plan. If the request follows a `$chat` plan, require an explicit `$work` invocation before editing files.
 
 ## Operating Contract
 
@@ -28,7 +30,9 @@ Do not use this skill when the user asks for a direct, already-scoped change, a 
 - Do not use `apply_patch`, shell redirection, code formatters, scaffolding commands, migrations, package managers, or any other tool action that changes the workspace.
 - Do not install dependencies, create prototypes, launch implementation agents, stage files, commit, push, or open pull requests.
 - Do not run commands that intentionally change application state, databases, generated assets, lockfiles, caches, or build artifacts.
-- Use only read-only inspection commands and code-intelligence tools unless the user explicitly leaves `$chat` and asks to implement through `$work` or a direct coding request.
+- Use only read-only inspection commands and code-intelligence tools while `$chat` is active. After a `$chat` plan, workspace edits are allowed only when the user explicitly invokes `$work`.
+- After `$chat`, do not treat informal approval such as "sounds good", "start", "go ahead", "you change it", or "按这个做" as permission to edit. Workspace edits are allowed only after the user explicitly invokes `$work`.
+- Every `$chat` response must include an understanding check: what the agent currently understands, what remains uncertain, and whether the latest user message changes the plan.
 - Do not produce a final plan before inspecting the project enough to understand the current business flow, relevant modules, constraints, and existing patterns.
 - Do not produce a solution plan until the user has confirmed the agent's understanding or the conversation has resolved the core ambiguity with clear evidence.
 - Do not treat a long list of questions as a conversation. Ask 1-3 high-leverage questions per turn by default.
@@ -45,11 +49,12 @@ Do not use this skill when the user asks for a direct, already-scoped change, a 
 Use a slow, guided interview loop:
 
 1. State the current understanding in 2-5 sentences.
-2. State the biggest uncertainty blocking better thinking.
-3. Ask 1-3 questions that resolve that uncertainty.
-4. Wait for the user's answer.
-5. Summarize what changed.
-6. Repeat with the next uncertainty.
+2. Explicitly assess whether the latest user message was understood and whether it changes any prior assumption.
+3. State the biggest uncertainty blocking better thinking.
+4. Ask 1-3 questions that resolve that uncertainty.
+5. Wait for the user's answer.
+6. Summarize what changed.
+7. Repeat with the next uncertainty.
 
 Only ask more than 3 questions in one response when the user explicitly asks for a full checklist. Even then, separate the checklist from the active next question.
 
@@ -205,6 +210,10 @@ For each implementation step, include:
 - Purpose
 - Exact work to do
 - Likely files or modules touched
+- Allowed read scope
+- Allowed write scope
+- Context to provide to the child agent
+- Context to hide unless the child agent requests it
 - Acceptance criteria for that step
 - Verification commands or checks for that step
 - Dependencies on earlier steps
@@ -212,7 +221,32 @@ For each implementation step, include:
 
 Do not merge multiple unrelated changes into one step. Prefer 3-8 clear steps for normal work. If a step cannot be verified independently, split it smaller or explain why it must stay coupled.
 
-End by asking the user to confirm or revise the plan. Mention that after confirmation the user can invoke `$work` or explicitly ask to implement the plan. Do not begin implementation while `$chat` is active.
+End by asking the user to confirm or revise the plan. State clearly that even after confirmation, implementation and workspace edits require an explicit `$work` invocation. Do not begin implementation while `$chat` is active.
+
+### 6.5 Draft The `$work` State Machine
+
+When the plan is ready, draft a root `WORK_STATE.md` in the conversation for `$work` to create later. Do not write the file in `$chat`.
+
+The draft should include:
+
+- overall status
+- current task
+- state transition rules
+- task table with IDs, statuses, dependencies, allowed read/write scopes, and verification
+- active task details
+- file access request log
+- transition log
+
+Use these default states unless the project needs a narrower set:
+
+```text
+pending -> ready -> assigned -> implementing -> self_check -> main_verify -> done
+pending -> blocked
+main_verify -> needs_fix -> assigned
+done -> ready(next task)
+```
+
+Each task should be a task capsule that `$work` can assign to one child agent without exposing the whole project ambition.
 
 ## Handoff Contract for `$work`
 
@@ -223,11 +257,18 @@ The final `$chat` plan draft should be clear enough for `$work` after the user c
 - user-visible acceptance criteria for the whole change
 - frontend demo recommendation, declined-demo note, or externally approved demo path/URL and design decisions when available
 - 3-8 ordered implementation steps unless the work is unusually small or large
-- per-step purpose, exact work, likely files/modules, acceptance criteria, verification commands or manual checks, and dependencies
+- per-step purpose, exact work, likely files/modules, allowed read scope, allowed write scope, child-agent context, hidden context, acceptance criteria, verification commands or manual checks, and dependencies
+- a draft `WORK_STATE.md` state machine for `$work` to create after explicit invocation
 - final verification expectations for the completed change
 - risks, migration notes, rollout notes, or rollback notes when relevant
 
 If any of those items are unknown, list them under risks or open questions instead of hiding them inside an implementation step.
+
+Strict handoff rule:
+
+- `$chat` confirmation is not implementation permission.
+- Only an explicit `$work` invocation may create `WORK_STATE.md` or modify workspace files.
+- If the user approves the plan without `$work`, remind them of the boundary and keep the conversation read-only.
 
 ## Output Patterns
 
@@ -248,7 +289,10 @@ Before I suggest a direction, I want to clarify:
 A good final planning response looks like:
 
 ```text
-Here is the plan draft I would implement only after you confirm and leave $chat:
+Here is the plan draft I would implement only after you confirm and later invoke $work:
+
+Understanding check:
+...
 
 Problem:
 ...
@@ -265,6 +309,10 @@ Step 1 - ...
 Purpose: ...
 Work: ...
 Likely files: ...
+Allowed read: ...
+Allowed write: ...
+Child context: ...
+Hidden unless requested: ...
 Acceptance criteria: ...
 Verification: ...
 Depends on: none
@@ -273,6 +321,10 @@ Step 2 - ...
 Purpose: ...
 Work: ...
 Likely files: ...
+Allowed read: ...
+Allowed write: ...
+Child context: ...
+Hidden unless requested: ...
 Acceptance criteria: ...
 Verification: ...
 Depends on: Step 1
@@ -280,5 +332,8 @@ Depends on: Step 1
 Risks / open questions:
 ...
 
-If this matches your intent, confirm it. After that you can use $work, or explicitly ask me to leave $chat and implement it one step at a time with a review loop after each step.
+Draft WORK_STATE.md:
+...
+
+If this matches your intent, confirm it. Even after confirmation, I will not edit files unless you explicitly invoke $work.
 ```
