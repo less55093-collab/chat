@@ -15,6 +15,11 @@ Execution modes:
 - `state-main`: create or update root `WORK_STATE.md`; the main agent implements each task and verifies transitions.
 - `delegated-state`: create or update root `WORK_STATE.md`; assign one active task at a time to one child agent, while the main agent owns scope, file-access decisions, diff review, verification, and final completion evidence.
 
+Plan topologies:
+
+- `linear`: execute tasks in order.
+- `branched`: execute shared prerequisite tasks first, then try planned branch candidates at the branch point. If a branch fails its defined verification and can be safely rolled back, roll back only that branch's changes and try the next branch.
+
 ## Operating Contract
 
 - Run only after the user explicitly invokes `$work`.
@@ -23,8 +28,12 @@ Execution modes:
 - Do not create `WORK_STATE.md` for `simple-main`.
 - Create or update root `WORK_STATE.md` only for `state-main` or `delegated-state`.
 - Execute one active task at a time. Do not start the next task until the current task is verified.
+- For branched plans, execute only one branch candidate at a time.
+- Do not continue past a branch point until one branch passes verification and main-agent review.
+- Do not improvise unplanned branches. If all planned branches fail, stop as blocked and report evidence.
 - Assign child agents only in `delegated-state`.
 - Preserve user changes. Inspect worktree status and relevant diffs before editing or integrating child changes. Never revert unrelated changes.
+- Roll back only changes made for the current failed branch. Never use broad destructive commands such as `git reset --hard` or `git checkout -- .` to abandon a branch.
 - Do not make destructive changes, rewrite unrelated areas, or expand scope beyond the active task without user confirmation.
 - Do not let a child agent approve its own work. The main agent must verify the diff and run or inspect the relevant checks.
 - Treat `ready -> assigned -> implementing` as administrative transitions when state is in use. They require a recorded state update but not diff/test verification.
@@ -37,11 +46,13 @@ Before editing implementation files:
 1. Confirm the user explicitly invoked `$work`.
 2. Confirm a `$chat` plan exists, or that the user supplied an equivalent atomic task with acceptance criteria.
 3. Identify execution mode: `simple-main`, `state-main`, or `delegated-state`.
-4. Confirm the active task has purpose, work, likely files/modules, acceptance criteria, focused verification, and dependencies when relevant.
-5. Inspect git status and relevant diffs so user-owned changes are preserved.
-6. For `state-main` and `delegated-state`, create or refresh root `WORK_STATE.md` with task IDs, statuses, state rules, active task, file-access log, and transition log.
-7. For `simple-main`, skip `WORK_STATE.md` and proceed with a compact main-agent execution loop.
-8. Identify the final whole-change verification commands or manual checks.
+4. Identify plan topology: `linear` or `branched`. If missing, treat the plan as `linear` unless it explicitly describes fallback branches.
+5. Confirm the active task has purpose, work, likely files/modules, acceptance criteria, focused verification, and dependencies when relevant.
+6. For a branched plan, confirm each branch has success criteria, failure criteria, branch-local write scope, rollback boundary, and convergence point.
+7. Inspect git status and relevant diffs so user-owned changes are preserved.
+8. For `state-main` and `delegated-state`, create or refresh root `WORK_STATE.md` with task IDs, branch topology when relevant, statuses, state rules, active task, file-access log, and transition log.
+9. For `simple-main`, skip `WORK_STATE.md` and proceed with a compact main-agent execution loop.
+10. Identify the final whole-change verification commands or manual checks.
 
 If critical task boundaries are missing, do not improvise a large implementation. Ask the user to return to `$chat` or provide the missing task details.
 
@@ -91,6 +102,7 @@ Minimum sections:
 - `Current task`
 - `Rules`
 - `State Machine`
+- `Branch Plan`, only when topology is `branched`
 - `Tasks`
 - `Active Task`
 - `File Access Requests`
@@ -103,6 +115,9 @@ pending -> ready -> assigned -> implementing -> self_check -> main_verify -> don
 pending -> blocked
 main_verify -> needs_fix -> assigned
 done -> ready(next task)
+branch_ready -> branch_attempt -> branch_verify -> branch_done
+branch_verify -> branch_failed -> rollback_branch -> branch_ready(next branch)
+branch_failed(all branches) -> blocked
 ```
 
 ## Task Capsule Requirements
@@ -122,8 +137,43 @@ Each active task should include:
 - Focused verification
 - Dependencies
 - Rollback, migration, or compatibility notes when relevant
+- Branch metadata when the task is a branch point: branch order, branch-local write scope, success criteria, failure criteria, rollback boundary, and convergence point
 
 If required fields are missing for a broad task, keep the task blocked or ask for clarification instead of assigning vague work.
+
+## Branched Plan Loop
+
+Use this loop when plan topology is `branched`.
+
+1. Complete all shared prerequisite tasks before the branch point.
+2. At the branch point, record the branch order and branch metadata in `WORK_STATE.md` when state is in use.
+3. Before attempting a branch, capture a checkpoint:
+   - current git status
+   - current diff summary
+   - files in the branch's allowed write scope
+   - any user-owned or pre-existing changes in those files
+4. Attempt only the active branch.
+5. Run the branch's focused verification and review loop.
+6. If the branch passes, mark the branch selected, record why it passed, and continue from the convergence point.
+7. If the branch fails, decide whether rollback is safe:
+   - safe: all changes are branch-local and do not overlap user-owned changes
+   - unsafe: rollback would touch user-owned changes, migrations, external state, generated assets that cannot be recreated, or files outside the branch rollback boundary
+8. If rollback is safe, roll back only the failed branch's own changes and try the next planned branch.
+9. If rollback is unsafe, stop and ask the user before reverting anything.
+10. If all planned branches fail, stop as blocked with evidence. Do not create a new branch path without user confirmation.
+
+Rollback must be precise. Prefer applying a reverse patch for the branch-local diff or manually undoing only the branch-local edits. Do not use broad repository resets.
+
+## Branch Review Rules
+
+For each branch attempt, the normal verification gate still applies:
+
+- run focused verification for that branch
+- use child-agent review in `delegated-state` when available
+- inspect the diff before accepting or rolling back
+- record failure evidence before moving to the next branch
+
+A branch is considered failed only when it meets the plan's explicit failure criteria or cannot satisfy its success criteria after a reasonable repair loop. Do not abandon a branch just because implementation is inconvenient.
 
 ## State-Main Loop
 
@@ -247,6 +297,7 @@ When all tasks are complete:
 - update `WORK_STATE.md` status to `complete` only if a state file exists for this run
 - summarize changed files
 - summarize execution mode and whether a child agent was used
+- summarize plan topology and, for branched plans, which branch was selected or why all branches failed
 - summarize final verification result
 - note remaining risks, skipped checks, or deferred items
 - confirm that every planned task passed verification

@@ -202,6 +202,7 @@ When enough answers are collected, produce a confirmation-ready plan draft. The 
 - Acceptance criteria
 - Frontend demo recommendation or decision, if relevant
 - Execution mode: `simple-main`, `state-main`, or `delegated-state`
+- Plan topology: `linear` or `branched`
 - Step-by-step implementation plan
 - Risks and open questions
 - Confirmation question
@@ -222,6 +223,34 @@ For each implementation step, include:
 - Rollback, migration, or compatibility notes when relevant
 
 Do not merge multiple unrelated changes into one step. Prefer 3-8 clear steps for normal work. If a step cannot be verified independently, split it smaller or explain why it must stay coupled.
+
+### 6.1 Optional Branching Paths
+
+Allow a branched plan only when there is a real implementation uncertainty that cannot be resolved confidently through read-only inspection or conversation. Do not add branches for ordinary preference choices or avoidable ambiguity.
+
+A branched plan should stay linear until the branch point, then define candidate paths that `$work` can try in order. Each branch must have a clear success test and a rollback boundary.
+
+For a branched step, include:
+
+- Branch point step ID
+- Shared prerequisite steps before the branch
+- Branch order: `A -> B -> C`
+- Branch A/B/C purpose
+- Exact work for each branch
+- Files/modules each branch may touch
+- Success criteria for each branch
+- Failure criteria that means the branch should be abandoned
+- Rollback boundary: what changes belong only to that branch
+- Convergence point after a branch succeeds
+- What to do if all branches fail
+
+Branch rules:
+
+- Prefer two branches unless a third is clearly justified.
+- Branches should be mutually exclusive alternatives for the same goal, not separate features.
+- A branch may depend on earlier shared steps, but branches should not depend on each other unless the plan explicitly says so.
+- The final plan should make clear that `$work` may automatically try Branch B if Branch A fails verification and can be safely rolled back.
+- If rollback could affect user-owned changes, generated assets, migrations, external state, or data loss, mark the branch as requiring user confirmation before rollback.
 
 End by asking the user to confirm or revise the plan. State clearly that even after confirmation, implementation and workspace edits require an explicit `$work` invocation. Do not begin implementation while `$chat` is active.
 
@@ -271,8 +300,10 @@ The final `$chat` plan draft should be clear enough for `$work` after the user c
 - user-visible acceptance criteria for the whole change
 - frontend demo recommendation, declined-demo note, or externally approved demo path/URL and design decisions when available
 - execution mode with rationale: `simple-main`, `state-main`, or `delegated-state`
+- plan topology with rationale: `linear` or `branched`
 - 3-8 ordered implementation steps unless the work is unusually small or large
 - per-step purpose, exact work, likely files/modules, allowed read scope, allowed write scope, child-agent context, hidden context, acceptance criteria, verification commands or manual checks, and dependencies
+- branch definitions, success/failure criteria, rollback boundaries, and convergence point when the topology is `branched`
 - a draft `WORK_STATE.md` state machine only when the execution mode is `state-main` or `delegated-state`
 - final verification expectations for the completed change
 - risks, migration notes, rollout notes, or rollback notes when relevant
@@ -324,6 +355,10 @@ Execution mode:
 simple-main | state-main | delegated-state
 Rationale: ...
 
+Plan topology:
+linear | branched
+Rationale: ...
+
 Step 1 - ...
 Purpose: ...
 Work: ...
@@ -347,6 +382,31 @@ Hidden unless requested: ...
 Acceptance criteria: ...
 Verification: ...
 Depends on: Step 1
+
+Branch point, only if topology is branched:
+Step 3 branches into:
+
+Branch A - ...
+Purpose: ...
+Work: ...
+Allowed write: ...
+Success criteria: ...
+Failure criteria: ...
+Rollback boundary: ...
+
+Branch B - ...
+Purpose: ...
+Work: ...
+Allowed write: ...
+Success criteria: ...
+Failure criteria: ...
+Rollback boundary: ...
+
+Convergence after success:
+...
+
+If all branches fail:
+...
 
 Risks / open questions:
 ...
