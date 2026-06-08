@@ -11,6 +11,8 @@ Use this skill to turn an unclear project idea into a grounded, confirmation-rea
 
 When the plan is ready, `$chat` must decide the execution mode for `$work`. Small tasks should be marked `simple-main` so `$work` can execute them directly with the main agent, without a state machine or child agent. Larger tasks should be broken into task capsules, and `$chat` should draft a `WORK_STATE.md` state machine only when the chosen execution mode needs one. `$chat` must not write that file or any other workspace file.
 
+The shared `$chat -> $work` handoff contract lives in `TASK_CAPSULE_SCHEMA.md`. `$chat` is responsible for producing plan and task capsules that follow that schema before asking the user to invoke `$work`.
+
 ## Applicability Gate
 
 Use this skill when the request needs collaborative discovery before implementation:
@@ -193,7 +195,7 @@ Before producing a confirmation-ready plan draft, verify plan readiness:
 
 If any readiness item fails, continue the interview.
 
-When enough answers are collected, produce a confirmation-ready plan draft. The plan must be step-by-step, not a dense block of prose. Each step must be independently understandable and verifiable. This is still discussion output, not permission to edit.
+When enough answers are collected, produce a confirmation-ready plan draft. The plan must follow `TASK_CAPSULE_SCHEMA.md`, be step-by-step, and avoid dense blocks of prose. Each step must be independently understandable and verifiable. This is still discussion output, not permission to edit.
 
 - Problem statement
 - Current code context
@@ -207,20 +209,7 @@ When enough answers are collected, produce a confirmation-ready plan draft. The 
 - Risks and open questions
 - Confirmation question
 
-For each implementation step, include:
-
-- Step name
-- Purpose
-- Exact work to do
-- Likely files or modules touched
-- Allowed read scope
-- Allowed write scope
-- Context to provide to the child agent
-- Context to hide unless the child agent requests it
-- Acceptance criteria for that step
-- Verification commands or checks for that step
-- Dependencies on earlier steps
-- Rollback, migration, or compatibility notes when relevant
+For each implementation step, include the task capsule fields defined in `TASK_CAPSULE_SCHEMA.md`: purpose, exact work, likely files/modules, allowed read/write scope, non-goals, acceptance criteria, focused verification, dependencies, and rollback or compatibility notes when relevant. Include child-agent context and hidden context when the execution mode is `delegated-state`.
 
 Do not merge multiple unrelated changes into one step. Prefer 3-8 clear steps for normal work. If a step cannot be verified independently, split it smaller or explain why it must stay coupled.
 
@@ -230,19 +219,7 @@ Allow a branched plan only when there is a real implementation uncertainty that 
 
 A branched plan should stay linear until the branch point, then define candidate paths that `$work` can try in order. Each branch must have a clear success test and a rollback boundary.
 
-For a branched step, include:
-
-- Branch point step ID
-- Shared prerequisite steps before the branch
-- Branch order: `A -> B -> C`
-- Branch A/B/C purpose
-- Exact work for each branch
-- Files/modules each branch may touch
-- Success criteria for each branch
-- Failure criteria that means the branch should be abandoned
-- Rollback boundary: what changes belong only to that branch
-- Convergence point after a branch succeeds
-- What to do if all branches fail
+For a branched step, include the branch metadata defined in `TASK_CAPSULE_SCHEMA.md`: branch point, shared prerequisites, branch order, per-branch purpose and exact work, touched files/modules, branch-local write scope, success criteria, failure criteria, rollback boundary, convergence point, and what to do if all branches fail.
 
 Branch rules:
 
@@ -295,15 +272,10 @@ For `delegated-state`, each task should be a task capsule that `$work` can assig
 
 The final `$chat` plan draft should be clear enough for `$work` after the user confirms it. Before handing off, make sure it contains:
 
-- a concise problem statement and current-code summary
-- explicit goals, non-goals, and deferred decisions
-- user-visible acceptance criteria for the whole change
+- a complete plan capsule as defined in `TASK_CAPSULE_SCHEMA.md`
+- one or more task capsules as defined in `TASK_CAPSULE_SCHEMA.md`
 - frontend demo recommendation, declined-demo note, or externally approved demo path/URL and design decisions when available
-- execution mode with rationale: `simple-main`, `state-main`, or `delegated-state`
-- plan topology with rationale: `linear` or `branched`
-- 3-8 ordered implementation steps unless the work is unusually small or large
-- per-step purpose, exact work, likely files/modules, allowed read scope, allowed write scope, child-agent context, hidden context, acceptance criteria, verification commands or manual checks, and dependencies
-- branch definitions, success/failure criteria, rollback boundaries, and convergence point when the topology is `branched`
+- branch metadata from `TASK_CAPSULE_SCHEMA.md` when the topology is `branched`
 - a draft `WORK_STATE.md` state machine only when the execution mode is `state-main` or `delegated-state`
 - final verification expectations for the completed change
 - risks, migration notes, rollout notes, or rollback notes when relevant

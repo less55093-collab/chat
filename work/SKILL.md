@@ -20,10 +20,12 @@ Plan topologies:
 - `linear`: execute tasks in order.
 - `branched`: execute shared prerequisite tasks first, then try planned branch candidates at the branch point. If a branch fails its defined verification and can be safely rolled back, roll back only that branch's changes and try the next branch.
 
+The shared `$chat -> $work` handoff contract lives in root `TASK_CAPSULE_SCHEMA.md`. `$work` consumes plan and task capsules from that schema; it does not redefine the interface or silently expand the plan.
+
 ## Operating Contract
 
 - Run only after the user explicitly invokes `$work`.
-- Require a confirmed plan or task capsule from `$chat`, including execution mode when available.
+- Require a confirmed plan or task capsule from `$chat`, following `TASK_CAPSULE_SCHEMA.md` when available and including execution mode when available.
 - If execution mode is missing, make the smallest safe classification before editing: use `simple-main` for small low-risk work, and use `state-main` or `delegated-state` only when the task actually benefits from state or child-agent delegation.
 - Do not create `WORK_STATE.md` for `simple-main`.
 - Create or update root `WORK_STATE.md` only for `state-main` or `delegated-state`.
@@ -47,8 +49,8 @@ Before editing implementation files:
 2. Confirm a `$chat` plan exists, or that the user supplied an equivalent atomic task with acceptance criteria.
 3. Identify execution mode: `simple-main`, `state-main`, or `delegated-state`.
 4. Identify plan topology: `linear` or `branched`. If missing, treat the plan as `linear` unless it explicitly describes fallback branches.
-5. Confirm the active task has purpose, work, likely files/modules, acceptance criteria, focused verification, and dependencies when relevant.
-6. For a branched plan, confirm each branch has success criteria, failure criteria, branch-local write scope, rollback boundary, and convergence point.
+5. Confirm the plan and active task contain the required capsule fields from `TASK_CAPSULE_SCHEMA.md`.
+6. For a branched plan, confirm each branch has the branch metadata required by `TASK_CAPSULE_SCHEMA.md`, including success criteria, failure criteria, branch-local write scope, rollback boundary, and convergence point.
 7. Inspect git status and relevant diffs so user-owned changes are preserved.
 8. For `state-main` and `delegated-state`, create or refresh root `WORK_STATE.md` with task IDs, branch topology when relevant, statuses, state rules, active task, file-access log, and transition log.
 9. For `simple-main`, skip `WORK_STATE.md` and proceed with a compact main-agent execution loop.
@@ -122,24 +124,15 @@ branch_failed(all branches) -> blocked
 
 ## Task Capsule Requirements
 
-Each active task should include:
+Each active task must follow the task capsule fields in root `TASK_CAPSULE_SCHEMA.md`.
 
-- Task ID and title when state is in use
-- Purpose
-- Exact work
-- Likely files/modules
-- Allowed read scope when delegation is used
-- Allowed write scope when delegation is used
-- Context to provide to the child agent when delegation is used
-- Context to hide unless requested when delegation is used
-- Explicit non-goals
-- Acceptance criteria
-- Focused verification
-- Dependencies
-- Rollback, migration, or compatibility notes when relevant
-- Branch metadata when the task is a branch point: branch order, branch-local write scope, success criteria, failure criteria, rollback boundary, and convergence point
+For `simple-main`, `$work` may infer a missing minor field only when the task is clearly small, low-risk, and the inference is the smallest safe value. Report the inference in the final summary.
 
-If required fields are missing for a broad task, keep the task blocked or ask for clarification instead of assigning vague work.
+For `state-main` and `delegated-state`, missing critical fields block execution until they are supplied. Critical fields include task ID, purpose, exact work, allowed read/write scope, non-goals, acceptance criteria, focused verification, dependencies, and rollback or compatibility notes when relevant.
+
+For `delegated-state`, child-agent context, hidden context, and the file access rule are required before assignment.
+
+For branch points, branch metadata from `TASK_CAPSULE_SCHEMA.md` is required before any branch attempt. If success criteria, failure criteria, branch-local write scope, rollback boundary, or convergence point are missing, stop before editing.
 
 ## Branched Plan Loop
 
