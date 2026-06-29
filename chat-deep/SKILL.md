@@ -1,6 +1,6 @@
 ---
 name: chat-deep
-description: Research-enabled requirement discovery before implementation. Use when the user invokes $chat-deep or /chat-deep, asks to deeply research a project idea before coding, wants Codex to decide research depth from task complexity, needs web-wide solution discovery, benchmark/market/prior-art research, architecture or vendor comparison, or asks to install research tools, skills, plugins, MCP servers, CLIs, or APIs to improve research breadth, depth, accuracy, citation quality, or report quality. For tool, integration, automation, CLI, MCP, plugin, or API needs, this skill defaults to reuse-first discovery across GitHub, package registries, official ecosystems, templates, and comparable implementations before recommending custom development. This skill maintains a persistent markdown research state machine so long research survives context compression and does not repeat completed work. It may install or configure research-only tooling after explicit user confirmation and may write markdown research briefs, but must not edit product/source implementation files; implementation still requires an explicit $work invocation.
+description: Research-enabled requirement discovery before implementation. Use when the user invokes $chat-deep or /chat-deep, asks to deeply research a project idea before coding, wants Codex to decide research depth from task complexity, needs web-wide solution discovery, benchmark/market/prior-art research, architecture or vendor comparison, or asks to install research tools, skills, plugins, MCP servers, CLIs, or APIs to improve research breadth, depth, accuracy, citation quality, or report quality. For tool, integration, automation, CLI, MCP, plugin, or API needs, this skill defaults to reuse-first discovery across GitHub, package registries, official ecosystems, templates, and comparable implementations before recommending custom development, and must carry adopted reusable candidates into the $work handoff instead of silently rebuilding equivalent functionality. This skill maintains a persistent markdown research state machine so long research survives context compression and does not repeat completed work. It may install or configure research-only tooling after explicit user confirmation and may write markdown research briefs, but must not edit product/source implementation files; implementation still requires an explicit $work invocation.
 ---
 
 # Chat Deep
@@ -10,6 +10,8 @@ description: Research-enabled requirement discovery before implementation. Use w
 Use this skill as the research execution bridge between `$chat` and `$work`. `$chat-deep` turns an uncertain project request into a sourced markdown research brief, a practical solution strategy, and a `$work`-ready implementation handoff.
 
 For tool-like requests, `$chat-deep` is reuse-first. Before designing a new implementation, it should actively look for existing projects, libraries, CLIs, MCP servers, plugins, SaaS APIs, templates, and proven implementation examples that can be used directly, wrapped, forked, or adapted. Custom development is the recommendation only after the research explains why existing options do not satisfy the user's core constraints.
+
+Reuse-first must survive the handoff. If a candidate is marked `adopt`, or if a `shortlist` candidate is the preferred direction, the recommended solution and `$work` task capsules must be framed around using that candidate. Do not convert the research into a from-scratch implementation plan unless all viable candidates are rejected or deferred with explicit evidence.
 
 `$chat-deep` is more permissive than `$chat`, but only for research. It may install or configure research-related skills, plugins, MCP servers, CLIs, packages, and API clients after explicit user confirmation. It must not modify product code, migrations, production data, app assets, commits, branches, or deployment state.
 
@@ -222,6 +224,13 @@ For tool-like requests, conduct reuse-first discovery before proposing a bespoke
 
 Prefer recommending reuse, composition, wrapping, or forking when it satisfies the core constraints with less implementation risk than custom code. Recommend building from scratch only when existing options fail clear criteria, and record that justification in `DECISIONS.md`.
 
+Apply this adoption gate before writing the final brief:
+
+- If any candidate is `adopt`, `Recommended Solution` must name that candidate and explain the concrete adoption path.
+- If the best candidate is `shortlist`, either promote it to an adoption path with remaining validation tasks, or explain exactly what blocks adoption.
+- If the recommendation is `build custom`, `DECISIONS.md` and `RESEARCH_BRIEF.md` must include `Custom Build Justification`: which candidates were considered, why each failed the core constraints, and which parts may still be reused as references.
+- Do not ask `$work` to rewrite core functionality already provided by an adopted candidate. Custom code in the handoff should be limited to glue code, adapters, configuration, tests, UX integration, or project-specific extensions unless the custom build justification explicitly allows more.
+
 For technical implementation research, inspect the local codebase enough to avoid generic recommendations. Do not rely on web results alone when the repository context can change the answer.
 
 During collection, write each source to `SOURCES.md` as soon as it is evaluated. During extraction, write claims and caveats to `FINDINGS.md`. During synthesis and validation, update `DECISIONS.md` and `RESEARCH_STATE.md` before continuing.
@@ -259,7 +268,10 @@ Use this structure:
 [Patterns, lessons, implementation approaches, checklists, or examples that can guide this project.]
 
 ## Recommended Solution
-[The preferred direction and rationale.]
+[The preferred direction and rationale. For tool-like requests, name the adopted project, package, API, CLI, MCP server, plugin, fork, or template whenever one is viable.]
+
+## Adoption Plan
+[For tool-like requests: exact reuse path, install or integration method, wrapper/adaptor boundary, fork strategy when relevant, project files likely affected, and what custom code is allowed. If building custom, include Custom Build Justification.]
 
 ## Rejected Or Deferred Options
 [Alternatives and why they are not the current recommendation.]
@@ -303,6 +315,10 @@ The final `Work Handoff` section in the markdown brief must be sufficient for `$
 - Goals and non-goals.
 - Acceptance criteria.
 - Reuse decision: direct use, wrap/integrate, fork/adapt, reference-only, or build custom, with rationale when applicable.
+- Adopted source: the exact project, package, API, CLI, MCP server, plugin, template, fork, or "none".
+- Adoption path: install/use directly, wrap/integrate, fork/adapt, vendor/template import, API integration, reference-only, or build custom.
+- Custom-code boundary: what may be written locally, and what must remain provided by the adopted source.
+- Custom Build Justification, required when the handoff asks `$work` to build functionality that a candidate project appeared to provide.
 - Execution mode: `simple-main`, `state-main`, or `delegated-state`.
 - Plan topology: `linear` or `branched`.
 - Ordered task capsules with purpose, exact work, likely files, allowed read scope, allowed write scope, non-goals, acceptance criteria, focused verification, dependencies, and rollback notes when relevant.

@@ -22,6 +22,11 @@ A plan capsule describes the whole change. `$chat` should include these fields b
 | Goals | Yes | Outcomes the implementation must achieve. |
 | Non-goals | Yes | Explicitly excluded behavior, files, workflows, or quality bars. |
 | Deferred decisions | When applicable | Decisions intentionally left outside this work. |
+| Reuse decision | Required for tool-like or research-backed work | `direct use`, `wrap/integrate`, `fork/adapt`, `vendor/template import`, `API integration`, `reference-only`, `build custom`, or `not applicable`, with rationale. |
+| Adopted source | Required when reuse decision is not `not applicable` | Exact project, package, API, CLI, MCP server, plugin, template, fork, or `none`. Include URL or local path when known. |
+| Adoption path | Required when reuse decision is not `not applicable` | How implementation should use the adopted source: install/use directly, wrap, fork, vendor, call API, or use as reference only. |
+| Custom-code boundary | Required for tool-like or research-backed work | What local code may be written, and what functionality must remain supplied by the adopted source. |
+| Custom Build Justification | Required when reuse decision is `build custom` or when local code duplicates candidate functionality | Evidence that viable candidates failed the core constraints; identify any candidate parts still reusable as references. |
 | Execution mode | Yes | `simple-main`, `state-main`, or `delegated-state`, with rationale. |
 | Plan topology | Yes | `linear` or `branched`, with rationale. |
 | Whole-change acceptance criteria | Yes | User-visible criteria for the full change. |
@@ -39,6 +44,9 @@ A task capsule describes one independently understandable implementation step.
 | Task ID and title | Required for stateful work | Use stable IDs such as `T-001` for `state-main` and `delegated-state`; recommended but optional for `simple-main`. |
 | Purpose | Yes | Why this task exists. |
 | Exact work | Yes | Concrete edits or actions, not vague intent. |
+| Reuse source | Required for tool-like or research-backed work | The exact adopted source this task uses, or `none` with justification. |
+| Adoption action | Required for tool-like or research-backed work | `install`, `configure`, `wrap`, `fork`, `vendor`, `integrate API`, `test adopted behavior`, `adapt UX`, `reference only`, or `custom build justified`. |
+| Custom-code boundary | Required for tool-like or research-backed work | The local code allowed in this task; must not replace adopted-source functionality unless justified. |
 | Likely files/modules | Yes | Expected files or directories. Use "unknown, inspect first" only when discovery cannot know. |
 | Allowed read scope | Yes | Files, directories, or repository areas the task may inspect. |
 | Allowed write scope | Yes | Files, directories, or generated artifacts the task may modify. Use "none" for read-only or verification tasks. |
@@ -58,6 +66,8 @@ A task capsule describes one independently understandable implementation step.
 Use for small, low-risk, easily verified work. `$work` must not create `WORK_STATE.md` or spawn child agents.
 
 The capsule may be compact, but it still needs purpose, exact work, acceptance criteria, verification, and scoped files. If a minor field is missing and the task is clearly safe, `$work` may infer the smallest safe value and report that inference.
+
+For tool-like or research-backed `simple-main` work, reuse fields are not minor. If the plan mentions reusable candidates or a reuse decision, `$work` must have enough reuse source, adoption action, and custom-code boundary detail to avoid rebuilding equivalent functionality.
 
 ### `state-main`
 
@@ -101,6 +111,8 @@ Each branch point must define:
 - Inspect enough context before drafting capsules.
 - Ask targeted questions until the problem, scope, and acceptance criteria are clear enough.
 - Produce capsules that match this schema before handing off to `$work`.
+- For tool-like or research-backed work, carry reuse decisions into both the plan capsule and each relevant task capsule.
+- If recommending `build custom`, include a concrete Custom Build Justification instead of relying on generic preference or convenience.
 - Include a draft `WORK_STATE.md` only for `state-main` or `delegated-state`.
 - Keep the handoff read-only. `$chat` must not create this schema's artifacts or implementation files.
 - State clearly that confirmation is not implementation permission; only explicit `$work` invocation unlocks edits.
@@ -109,6 +121,8 @@ Each branch point must define:
 
 - Confirm explicit `$work` invocation before editing.
 - Consume the confirmed capsules instead of inventing a new plan.
+- For tool-like or research-backed work, verify that task capsules implement the stated reuse decision. If a plan says to reuse but the tasks rebuild equivalent functionality, stop as blocked and ask for a corrected handoff.
+- Reject silent custom rebuilds unless the plan includes Custom Build Justification and a clear custom-code boundary.
 - Classify missing execution mode only when the task is small and safe enough to do so.
 - For broad tasks with missing critical fields, stop as blocked or ask the user to return to `$chat`.
 - For branch plans with missing success, failure, rollback, or convergence fields, stop before attempting the branch.
@@ -128,11 +142,19 @@ Plan topology:
 Whole-change acceptance criteria:
 Final verification:
 Risks and open questions:
+Reuse decision:
+Adopted source:
+Adoption path:
+Custom-code boundary:
+Custom Build Justification:
 
 Task Capsule
 Task ID and title:
 Purpose:
 Exact work:
+Reuse source:
+Adoption action:
+Custom-code boundary:
 Likely files/modules:
 Allowed read scope:
 Allowed write scope:

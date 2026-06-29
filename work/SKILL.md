@@ -1,6 +1,6 @@
 ---
 name: work
-description: "Execute a confirmed $chat plan after explicit $work invocation. Use $chat's execution-mode decision: simple-main for small tasks handled directly by the main agent without WORK_STATE.md or child agents; state-main for resumable multi-step work handled by the main agent with WORK_STATE.md; delegated-state for larger work that uses WORK_STATE.md plus child-agent implementation and main-agent verification. Do not invent a new plan; consume the confirmed task capsules and verification criteria."
+description: "Execute a confirmed $chat plan after explicit $work invocation. Use $chat's execution-mode decision: simple-main for small tasks handled directly by the main agent without WORK_STATE.md or child agents; state-main for resumable multi-step work handled by the main agent with WORK_STATE.md; delegated-state for larger work that uses WORK_STATE.md plus child-agent implementation and main-agent verification. Do not invent a new plan; consume the confirmed task capsules and verification criteria. For research-backed or tool-like work, enforce the handoff's reuse decision and do not silently rebuild functionality that an adopted source is supposed to provide."
 ---
 
 # Work
@@ -8,6 +8,8 @@ description: "Execute a confirmed $chat plan after explicit $work invocation. Us
 ## Overview
 
 Use this skill to execute an already confirmed implementation plan. `$work` does not invent or materially reshape the plan; it consumes `$chat`'s execution-mode decision, task capsules, and verification criteria.
+
+For tool-like or research-backed work, `$work` must also consume the reuse decision. If the handoff says to directly use, wrap, integrate, fork, vendor, or call an adopted source, implementation must center on that adoption path. `$work` must not replace the adopted source with a fresh local implementation unless the handoff explicitly includes a Custom Build Justification and a custom-code boundary that allows it.
 
 Execution modes:
 
@@ -26,6 +28,9 @@ The shared `$chat -> $work` handoff contract lives in root `TASK_CAPSULE_SCHEMA.
 
 - Run only after the user explicitly invokes `$work`.
 - Require a confirmed plan or task capsule from `$chat`, following `TASK_CAPSULE_SCHEMA.md` when available and including execution mode when available.
+- For tool-like or research-backed work, require reuse fields from `TASK_CAPSULE_SCHEMA.md`: reuse decision, adopted source, adoption path, custom-code boundary, and Custom Build Justification when custom work duplicates candidate functionality.
+- If the plan says `direct use`, `wrap/integrate`, `fork/adapt`, `vendor/template import`, or `API integration`, do not rewrite the adopted source's core capability locally. Local code should stay inside the stated glue, adapter, configuration, tests, UX integration, or extension boundary.
+- If the task capsules rebuild functionality that the adopted source is meant to provide, stop as blocked and ask for a corrected `$chat-deep` or `$chat` handoff.
 - If execution mode is missing, make the smallest safe classification before editing: use `simple-main` for small low-risk work, and use `state-main` or `delegated-state` only when the task actually benefits from state or child-agent delegation.
 - Do not create `WORK_STATE.md` for `simple-main`.
 - Create or update root `WORK_STATE.md` only for `state-main` or `delegated-state`.
@@ -50,11 +55,13 @@ Before editing implementation files:
 3. Identify execution mode: `simple-main`, `state-main`, or `delegated-state`.
 4. Identify plan topology: `linear` or `branched`. If missing, treat the plan as `linear` unless it explicitly describes fallback branches.
 5. Confirm the plan and active task contain the required capsule fields from `TASK_CAPSULE_SCHEMA.md`.
-6. For a branched plan, confirm each branch has the branch metadata required by `TASK_CAPSULE_SCHEMA.md`, including success criteria, failure criteria, branch-local write scope, rollback boundary, and convergence point.
-7. Inspect git status and relevant diffs so user-owned changes are preserved.
-8. For `state-main` and `delegated-state`, create or refresh root `WORK_STATE.md` with task IDs, branch topology when relevant, statuses, state rules, active task, file-access log, and transition log.
-9. For `simple-main`, skip `WORK_STATE.md` and proceed with a compact main-agent execution loop.
-10. Identify the final whole-change verification commands or manual checks.
+6. For tool-like or research-backed work, confirm reuse decision, adopted source, adoption path, custom-code boundary, and any Custom Build Justification required by `TASK_CAPSULE_SCHEMA.md`.
+7. Compare the reuse decision against the active task's exact work. If the task asks for a local rebuild of adopted-source functionality without explicit justification, stop before editing.
+8. For a branched plan, confirm each branch has the branch metadata required by `TASK_CAPSULE_SCHEMA.md`, including success criteria, failure criteria, branch-local write scope, rollback boundary, and convergence point.
+9. Inspect git status and relevant diffs so user-owned changes are preserved.
+10. For `state-main` and `delegated-state`, create or refresh root `WORK_STATE.md` with task IDs, branch topology when relevant, statuses, state rules, active task, file-access log, and transition log.
+11. For `simple-main`, skip `WORK_STATE.md` and proceed with a compact main-agent execution loop.
+12. Identify the final whole-change verification commands or manual checks.
 
 If critical task boundaries are missing, do not improvise a large implementation. Ask the user to return to `$chat` or provide the missing task details.
 
@@ -128,7 +135,9 @@ Each active task must follow the task capsule fields in root `TASK_CAPSULE_SCHEM
 
 For `simple-main`, `$work` may infer a missing minor field only when the task is clearly small, low-risk, and the inference is the smallest safe value. Report the inference in the final summary.
 
-For `state-main` and `delegated-state`, missing critical fields block execution until they are supplied. Critical fields include task ID, purpose, exact work, allowed read/write scope, non-goals, acceptance criteria, focused verification, dependencies, and rollback or compatibility notes when relevant.
+For tool-like or research-backed work, reuse fields are critical fields. Missing reuse decision, adopted source, adoption path, task reuse source, adoption action, or custom-code boundary blocks execution until supplied. Missing Custom Build Justification blocks execution when the plan asks for custom code that overlaps candidate or adopted-source functionality.
+
+For `state-main` and `delegated-state`, missing critical fields block execution until they are supplied. Critical fields include task ID, purpose, exact work, allowed read/write scope, non-goals, acceptance criteria, focused verification, dependencies, reuse fields when applicable, and rollback or compatibility notes when relevant.
 
 For `delegated-state`, child-agent context, hidden context, and the file access rule are required before assignment.
 
@@ -173,12 +182,13 @@ A branch is considered failed only when it meets the plan's explicit failure cri
 Use this loop for `state-main`:
 
 1. Update `WORK_STATE.md`: task `ready -> implementing`.
-2. Implement only the active task.
-3. Run focused verification.
-4. Update `WORK_STATE.md`: task `implementing -> main_verify`.
-5. Inspect the diff and verification output.
-6. If verification passes, mark task `done`, update transition log, and activate the next unblocked task.
-7. If verification fails, mark `needs_fix`, fix locally, and repeat verification.
+2. Re-check any reuse source, adoption action, and custom-code boundary on the active task before editing.
+3. Implement only the active task.
+4. Run focused verification.
+5. Update `WORK_STATE.md`: task `implementing -> main_verify`.
+6. Inspect the diff and verification output, including whether the diff stays inside the reuse boundary.
+7. If verification passes, mark task `done`, update transition log, and activate the next unblocked task.
+8. If verification fails, mark `needs_fix`, fix locally, and repeat verification.
 
 ## Delegated-State Loop
 
@@ -230,6 +240,15 @@ Acceptance criteria:
 Focused verification:
 ...
 
+Reuse source:
+...
+
+Adoption action:
+...
+
+Custom-code boundary:
+...
+
 File access rule:
 You may inspect files inside Allowed read. For anything else, stop and request access using the File Access Request format. Do not read or modify outside the allowed scope without approval.
 
@@ -279,8 +298,16 @@ Use the lightest check that proves the task:
 - e2e/manual browser checks for user-facing workflows
 - typecheck/lint when typed or shared contracts changed
 - security review when auth, permissions, secrets, payments, or user-controlled input changed
+- reuse-boundary review when the task adopts an external project, package, API, CLI, MCP server, plugin, fork, or template
 
 Read verification output before claiming success. If a command cannot run, explain why and run the strongest narrower check available. Record the limitation in `WORK_STATE.md` only when a state file exists.
+
+For reuse-boundary review, inspect the diff and confirm:
+
+- The adopted source is installed, invoked, wrapped, forked, vendored, or integrated as planned.
+- Local code stays within the handoff's custom-code boundary.
+- No substantial reimplementation of adopted-source functionality was added unless the Custom Build Justification explicitly allowed it.
+- Verification exercises the adopted integration, not only locally rewritten fallback behavior.
 
 ## Completion
 
