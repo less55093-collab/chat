@@ -136,21 +136,26 @@ Do not rush from an initial user prompt into a research plan. `$chat-deep` must 
 
 Start by restating the user's initial request, the new capability or workflow they appear to want, and why research may matter. If an existing project is relevant and available, inspect it enough to understand fit constraints; otherwise keep the focus on the user need and the external solution landscape.
 
-Run a focused, multi-round intake interview before proposing a research plan. Ask several small batches of high-value questions, usually 3-6 questions per round, and continue until the problem framing is stable enough that the eventual research plan is likely to answer the user's actual need rather than a guessed version of it. Prefer concrete questions over broad prompts.
+Run a focused, multi-round intake interview before proposing a research plan. Ask several small batches of high-value questions, usually 3-6 questions per round, and continue until the problem framing and objective project situation model are stable enough that the eventual research plan is likely to answer the user's actual need rather than a guessed version of it. Prefer concrete questions over broad prompts.
+
+The situation model is not psychological analysis of the user. Do not infer hidden emotions, motives, or personal state, and do not claim to completely understand the user. Focus on project-relevant context that changes the right research question, candidate evaluation criteria, or implementation handoff. A small amount of empathy is fine when it helps the user express context, but the interview should remain objective and decision-focused.
 
 The interview should uncover:
 
 - The user's real goal and the decision they need the research to support.
-- The background, users, workflow, business or technical context, and why this matters now.
+- The project stage, background, users, workflow, business or technical context, and why this matters now.
 - Existing systems, codebases, tools, vendors, processes, or prior attempts that constrain the answer.
-- Hard constraints such as budget, timeline, platform, language, security, compliance, data access, deployment, licensing, or team skill.
+- Hard constraints such as budget, timeline, platform, language, security, compliance, data access, deployment, licensing, rollout limits, migration tolerance, support burden, or team skill.
+- Affected users, maintainers, operators, reviewers, admins, downstream systems, and ownership boundaries.
+- Prior attempts, rejected approaches, workarounds, incidents, and why they failed or are insufficient.
 - Success criteria, failure criteria, must-haves, nice-to-haves, and explicit non-goals.
+- The cost of choosing poorly and what evidence would make a recommendation trustworthy.
 - The user's current assumptions, preferences, and options they are already considering.
 - Expected output shape: brief, comparison, architecture recommendation, vendor shortlist, implementation handoff, risk analysis, or another artifact.
 
-When the user is unsure, help them answer by offering hypotheses, examples, option sets, and tradeoffs for them to confirm or correct. Ask follow-up questions when answers reveal contradictions, missing context, ambiguous priorities, or hidden constraints. Do not ask filler questions; every question should reduce research ambiguity.
+When the user is unsure, help them answer by offering hypotheses, examples, option sets, and tradeoffs for them to confirm or correct. Separate user-confirmed facts, source or code evidence, and agent assumptions. Ask follow-up questions when answers reveal contradictions, missing context, ambiguous priorities, or hidden project constraints. Do not ask filler questions; every question should reduce research ambiguity.
 
-Before proposing the research plan, write a concise "problem framing" summary in the user's language and ask the user to confirm or correct it. Only move from `interviewing` to `framed` after the user confirms the framing or gives enough correction that the framing is effectively confirmed.
+Before proposing the research plan, write a concise "problem framing and project situation" summary in the user's language and ask the user to confirm or correct it. Only move from `interviewing` to `framed` after the user confirms the framing or gives enough correction that the framing is effectively confirmed.
 
 Always state:
 

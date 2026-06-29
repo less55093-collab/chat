@@ -47,6 +47,22 @@ Do not use this skill when the user asks for a direct, already-scoped change, a 
 - When frontend demo work seems useful, discuss why and capture it as a possible next step outside `$chat`; do not create the demo while this skill is active.
 - Say "I do not understand this well enough yet" when that is true. Do not hide uncertainty behind a confident plan.
 
+## Objective Project Situation Model
+
+Before planning, build an objective project situation model. This is not psychological analysis of the user; do not infer hidden emotions, motives, or personal state, and do not claim to completely understand the user. The goal is to understand the project-relevant context well enough that the solution fits the user's actual working conditions rather than a generic best practice.
+
+The situation model should capture, as applicable:
+
+- Product or project stage, current business workflow, and why this needs attention now.
+- Affected users, operators, maintainers, reviewers, admins, and downstream systems.
+- Current code paths, architecture, data model, permissions, integrations, deployment shape, and operational constraints.
+- Team capacity, skill constraints, timeline, budget, rollout limits, migration tolerance, support burden, and maintenance expectations.
+- Security, privacy, compliance, licensing, compatibility, performance, reliability, and observability constraints.
+- Prior attempts, rejected approaches, known incidents, existing workarounds, and reasons they failed or are insufficient.
+- Success criteria, failure criteria, must-haves, nice-to-haves, explicit non-goals, and the cost of choosing poorly.
+
+Keep this model evidence-based. Separate code evidence, user-confirmed facts, and agent assumptions. When the user is vague, offer concrete options, examples, or likely interpretations for them to confirm or reject. Ask project-relevant questions only; avoid personal probing unless the user explicitly makes it relevant. A small amount of empathy is fine when it helps the user express context, but the questions should remain objective and decision-focused.
+
 ## Language Rule
 
 Internal skill instructions may be written in English, but user-facing responses must mirror the user's language.
@@ -242,6 +258,7 @@ Ask questions in rounds. Each round should usually contain 1-3 questions grouped
 
 Cover these categories as applicable:
 
+- Project situation: project stage, business context, current constraints, decision pressure, failure cost
 - User and job-to-be-done: who needs this, what pain it solves, what success looks like
 - Current behavior: what is wrong, missing, slow, confusing, or risky today
 - Desired behavior: default path, alternatives, edge cases, empty/error states
@@ -263,6 +280,7 @@ Question style:
 - Ask “Is this a must-have or can it wait?” to control scope.
 - Ask “What would make this feel successful in production?” to define acceptance criteria.
 - After each answer, summarize what changed in the plan before asking the next round.
+- Convert assumptions into confirmed facts before using them to shape the plan.
 - When the user gives a vague answer, ask a sharper follow-up instead of moving on.
 - When the user contradicts the code's apparent model, call out the mismatch and ask which source of truth should win.
 
