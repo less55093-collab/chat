@@ -81,7 +81,7 @@ For reuse-first research, `SOURCES.md` must also record candidate projects or pa
 Use this state machine unless the user asks for a narrower process:
 
 ```text
-intake -> scoped -> plan_confirmed -> tooling_ready -> collecting -> extracting -> synthesizing -> validating -> handoff_ready -> complete
+intake -> interviewing -> framed -> scoped -> plan_confirmed -> tooling_ready -> collecting -> extracting -> synthesizing -> validating -> handoff_ready -> complete
 any -> blocked
 validating -> collecting
 synthesizing -> extracting
@@ -90,7 +90,9 @@ handoff_ready -> validating
 
 State meanings:
 
-- `intake`: understand the request and determine whether `$chat-deep` is appropriate.
+- `intake`: understand the initial request and determine whether `$chat-deep` is appropriate.
+- `interviewing`: run a focused, multi-round discovery interview to surface the user's real goal, background, constraints, decision criteria, and success definition.
+- `framed`: the user has confirmed or corrected a concrete problem framing that is stable enough to scope research.
 - `scoped`: define research questions, depth, candidate tools, artifact path, and confirmation request.
 - `plan_confirmed`: user has approved the research plan and state directory can be created or updated.
 - `tooling_ready`: required research tools are available, installed, configured, skipped, or explicitly blocked.
@@ -128,9 +130,27 @@ If state files conflict with chat history, trust the state files and ask the use
 
 For `standard`, `deep`, and `exhaustive` research, start with the Persistent Research State protocol. If this is a new run, include the proposed state directory in the research plan and create initial state files only after user confirmation. For `light` research, persistent state is optional unless the work spans more than one turn.
 
-### 1. Understand The Request
+### 1. Interview And Frame The Request
 
-Restate the user request, the new capability or workflow the user is trying to create, and why research may matter. If an existing project is relevant and available, inspect it enough to understand fit constraints; otherwise keep the focus on the user need and the external solution landscape. Ask only the minimum clarifying questions needed to choose a research depth and scope.
+Do not rush from an initial user prompt into a research plan. `$chat-deep` must treat requirement discovery as a first-class phase because many users do not initially express the real problem, constraints, or decision context clearly enough for useful research.
+
+Start by restating the user's initial request, the new capability or workflow they appear to want, and why research may matter. If an existing project is relevant and available, inspect it enough to understand fit constraints; otherwise keep the focus on the user need and the external solution landscape.
+
+Run a focused, multi-round intake interview before proposing a research plan. Ask several small batches of high-value questions, usually 3-6 questions per round, and continue until the problem framing is stable enough that the eventual research plan is likely to answer the user's actual need rather than a guessed version of it. Prefer concrete questions over broad prompts.
+
+The interview should uncover:
+
+- The user's real goal and the decision they need the research to support.
+- The background, users, workflow, business or technical context, and why this matters now.
+- Existing systems, codebases, tools, vendors, processes, or prior attempts that constrain the answer.
+- Hard constraints such as budget, timeline, platform, language, security, compliance, data access, deployment, licensing, or team skill.
+- Success criteria, failure criteria, must-haves, nice-to-haves, and explicit non-goals.
+- The user's current assumptions, preferences, and options they are already considering.
+- Expected output shape: brief, comparison, architecture recommendation, vendor shortlist, implementation handoff, risk analysis, or another artifact.
+
+When the user is unsure, help them answer by offering hypotheses, examples, option sets, and tradeoffs for them to confirm or correct. Ask follow-up questions when answers reveal contradictions, missing context, ambiguous priorities, or hidden constraints. Do not ask filler questions; every question should reduce research ambiguity.
+
+Before proposing the research plan, write a concise "problem framing" summary in the user's language and ask the user to confirm or correct it. Only move from `interviewing` to `framed` after the user confirms the framing or gives enough correction that the framing is effectively confirmed.
 
 Always state:
 
@@ -139,6 +159,7 @@ Always state:
 - Whether the request needs external research or can stay in normal `$chat`.
 - The proposed research depth.
 - Whether the request is tool-like and therefore requires reuse-first discovery before custom design.
+- Whether the problem framing has been confirmed by the user.
 
 ### 2. Classify Research Depth
 
@@ -160,7 +181,9 @@ When the user invokes `$chat-deep`, assume the problem is non-trivial enough to 
 
 ### 3. Propose A Research Plan
 
-Before installing new tools or starting substantial research, ask for explicit confirmation unless the user already gave clear permission in the same turn.
+Do not propose a research plan until the problem framing has been confirmed. If the framing is still uncertain, stay in the interview phase and ask another focused round of questions.
+
+Before installing new tools or starting substantial research, ask for explicit confirmation unless the user already gave clear permission in the same turn after confirming the problem framing.
 
 The research plan should include:
 
