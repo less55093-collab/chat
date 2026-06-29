@@ -7,9 +7,11 @@ description: Research-enabled requirement discovery before implementation. Use w
 
 ## Overview
 
-Use this skill as the research execution bridge between `$chat` and `$work`. `$chat-deep` turns an uncertain project request into a sourced markdown research brief, a practical solution strategy, and a `$work`-ready implementation handoff.
+Use this skill as the research execution bridge between `$chat` and `$work`. `$chat-deep` turns an uncertain user need into a sourced markdown research brief, a practical solution strategy, and a `$work`-ready implementation handoff.
 
-For tool-like requests, `$chat-deep` is reuse-first. Before designing a new implementation, it should actively look for existing projects, libraries, CLIs, MCP servers, plugins, SaaS APIs, templates, and proven implementation examples that can be used directly, wrapped, forked, or adapted. Custom development is the recommendation only after the research explains why existing options do not satisfy the user's core constraints.
+The default center of gravity is a user's new requirement, not an existing codebase. Inspect local project context when the user provides one or when implementation fit depends on it, but do not let repository analysis displace the main job: understand the user's need, discover existing wheels or industry solutions, and explain which path should be reused or adopted.
+
+For tool-like requests, `$chat-deep` is reuse-first. Before designing a new implementation, it should actively look for existing projects, libraries, CLIs, MCP servers, plugins, SaaS APIs, hosted products, official APIs, standards, protocols, industry workflows, templates, and proven implementation examples that can be used directly, wrapped, forked, adapted, or adopted as the solution pattern. Custom development is the recommendation only after the research explains why existing options do not satisfy the user's core constraints.
 
 Reuse-first must survive the handoff. If a candidate is marked `adopt`, or if a `shortlist` candidate is the preferred direction, the recommended solution and `$work` task capsules must be framed around using that candidate. Do not convert the research into a from-scratch implementation plan unless all viable candidates are rejected or deferred with explicit evidence.
 
@@ -128,7 +130,7 @@ For `standard`, `deep`, and `exhaustive` research, start with the Persistent Res
 
 ### 1. Understand The Request
 
-Restate the user request, affected project or workflow, and why research may matter. Inspect local code first when project context is relevant and available. Ask only the minimum clarifying questions needed to choose a research depth and scope.
+Restate the user request, the new capability or workflow the user is trying to create, and why research may matter. If an existing project is relevant and available, inspect it enough to understand fit constraints; otherwise keep the focus on the user need and the external solution landscape. Ask only the minimum clarifying questions needed to choose a research depth and scope.
 
 Always state:
 
@@ -154,6 +156,8 @@ Escalate depth when facts may have changed recently, the decision could cost sig
 
 Treat tool, integration, automation, CLI, MCP, plugin, API, data-pipeline, and developer-workflow requests as reuse-first by default. The minimum responsible depth is usually `standard` when the answer depends on selecting among existing projects, libraries, registries, or vendor APIs, because maintenance, license, integration cost, and real-world adoption need cross-checking.
 
+When the user invokes `$chat-deep`, assume the problem is non-trivial enough to deserve meaningful breadth and depth. Do not satisfy reuse-first discovery with a shallow list of links. Search broadly enough to expose multiple plausible wheels or industry approaches, then analyze relevant candidates deeply enough to make the reuse decision defensible.
+
 ### 3. Propose A Research Plan
 
 Before installing new tools or starting substantial research, ask for explicit confirmation unless the user already gave clear permission in the same turn.
@@ -162,8 +166,9 @@ The research plan should include:
 
 - Research depth: `light`, `standard`, `deep`, or `exhaustive`.
 - Key questions the research must answer.
-- Source targets: official docs, code repositories, papers, market reports, forums, issue trackers, or competitor docs.
-- Reuse-first discovery targets when applicable: GitHub/GitLab repositories, package registries, official ecosystem directories, MCP/plugin registries, CLI catalogs, SaaS/API vendors, templates, examples, and comparable implementations.
+- Search coverage: the broad source categories that will be searched before narrowing.
+- Source targets: official docs, code repositories, papers, market reports, forums, issue trackers, competitor docs, standards bodies, vendor docs, and industry practice writeups.
+- Reuse-first discovery targets when applicable: GitHub/GitLab repositories, package registries, official ecosystem directories, MCP/plugin registries, CLI catalogs, SaaS/API vendors, hosted products, standards/protocols, industry workflows, templates, examples, and comparable implementations.
 - Candidate evaluation criteria when applicable: feature fit, maintenance activity, release cadence, issue/PR quality, license, security posture, dependency risk, integration effort, extension points, adoption signals, and migration or exit cost.
 - Candidate tools and why each is useful.
 - Expected artifact path for the markdown brief.
@@ -207,14 +212,14 @@ Use primary sources whenever possible. Cross-check important claims across indep
 
 For `standard`, `deep`, and `exhaustive` research, cover:
 
-- Current best practices or established solutions.
+- Current best practices or established solutions, including industry-standard approaches that are not open-source projects.
 - Prior art from comparable projects or products.
 - Reusable candidates, including direct-use, wrapper/integration, fork/adapt, reference-only, and reject decisions.
 - Official constraints, APIs, compatibility notes, or deprecations.
 - Risks, failure modes, tradeoffs, and rejected alternatives.
 - How findings map back to the user's specific project.
 
-For tool-like requests, conduct reuse-first discovery before proposing a bespoke design. Search across likely ecosystems and record a candidate matrix with:
+For tool-like requests, conduct reuse-first discovery before proposing a bespoke design. A "wheel" can be an open-source project, commercial or hosted product, official API, standard protocol, mature vendor workflow, template, CLI, plugin, MCP server, or documented industry solution. Search across likely ecosystems and record a candidate matrix with:
 
 - Candidate name, URL, source type, license, maturity, and maintenance signal.
 - Capability fit against the user's required workflow.
@@ -231,9 +236,11 @@ Apply this adoption gate before writing the final brief:
 - If the recommendation is `build custom`, `DECISIONS.md` and `RESEARCH_BRIEF.md` must include `Custom Build Justification`: which candidates were considered, why each failed the core constraints, and which parts may still be reused as references.
 - Do not ask `$work` to rewrite core functionality already provided by an adopted candidate. Custom code in the handoff should be limited to glue code, adapters, configuration, tests, UX integration, or project-specific extensions unless the custom build justification explicitly allows more.
 
-For technical implementation research, inspect the local codebase enough to avoid generic recommendations. Do not rely on web results alone when the repository context can change the answer.
+For technical implementation research, inspect the local codebase enough to avoid generic recommendations when the user is asking to land the solution in an existing project. If the user is researching a new requirement without a concrete codebase dependency, keep local inspection lightweight and focus the brief on external solution discovery, decision logic, and adoption path.
 
 During collection, write each source to `SOURCES.md` as soon as it is evaluated. During extraction, write claims and caveats to `FINDINGS.md`. During synthesis and validation, update `DECISIONS.md` and `RESEARCH_STATE.md` before continuing.
+
+Keep the internal research heavy and the final brief useful. `SOURCES.md`, `FINDINGS.md`, and `DECISIONS.md` may contain the detailed trail; `RESEARCH_BRIEF.md` should focus on resolving the user's uncertainty, explaining the decision logic, and showing how to reuse or adopt the chosen solution.
 
 ### 6. Write The Research Brief
 
@@ -246,35 +253,29 @@ Use this structure:
 ```markdown
 # Research Brief: [Topic]
 
-## User Need
-[What the user wants and why it matters.]
+## Question
+[The user's real question or uncertainty, what they need to decide, and why the problem is non-trivial.]
 
 ## Project Context
-[Relevant repository or workflow evidence. Separate evidence from inference.]
+[Relevant existing-project or workflow evidence when applicable. If this is a new requirement without meaningful repository constraints, say so briefly and focus the report on the user's need.]
 
-## Research Depth And Tools
-[Depth chosen, tools used or installed, and why.]
+## Search Coverage
+[Where the research looked: open-source repositories, package registries, official APIs, standards/protocols, hosted products, industry practices, forums/issues, competitor docs, or other relevant areas. Keep this concise but enough to prove breadth.]
 
-## Key Sources
-[Bulleted source list with links, source type, and source quality notes.]
+## Candidate Solutions
+[Candidates and industry approaches considered. For relevant candidates, include source links, source type, fit, maturity or adoption signal, integration path, risks, and adopt/shortlist/reject/defer decision. Compress weak or low-relevance candidates.]
 
-## Findings
-[Synthesis, not pasted source summaries.]
+## Evaluation Logic
+[The criteria and reasoning used to judge candidates. Explain why the recommendation follows from the evidence.]
 
-## Reuse Candidate Matrix
-[For tool-like requests: candidates considered, source links, license, maintenance/adoption signals, fit, integration path, risks, and adopt/reject/defer decision. Omit only when not applicable.]
-
-## Reusable Experience
-[Patterns, lessons, implementation approaches, checklists, or examples that can guide this project.]
-
-## Recommended Solution
-[The preferred direction and rationale. For tool-like requests, name the adopted project, package, API, CLI, MCP server, plugin, fork, or template whenever one is viable.]
+## Recommendation
+[The preferred direction and rationale. For tool-like requests, name the adopted project, package, API, CLI, MCP server, plugin, fork, template, standard, hosted product, or industry approach whenever one is viable.]
 
 ## Adoption Plan
 [For tool-like requests: exact reuse path, install or integration method, wrapper/adaptor boundary, fork strategy when relevant, project files likely affected, and what custom code is allowed. If building custom, include Custom Build Justification.]
 
-## Rejected Or Deferred Options
-[Alternatives and why they are not the current recommendation.]
+## Why Not The Others
+[Main alternatives and why they are not the current recommendation. Keep this decision-oriented, not exhaustive.]
 
 ## Risks And Unknowns
 [Known risks, uncertainty, stale-source risk, compatibility risk, or missing credentials.]
@@ -289,7 +290,7 @@ Use this structure:
 [Query, depth, tools, source constraints, date, and any relevant versions.]
 ```
 
-The brief must cite sources for factual claims that came from the web. Keep quotes short and prefer summaries.
+The brief must answer the user's uncertainty and make the recommendation logic clear. It should not include long source dumps or every weak candidate found during broad search. Cite sources for factual claims that came from the web. Keep quotes short and prefer summaries.
 
 When the brief is ready, update `RESEARCH_STATE.md` to `handoff_ready`. After the user-facing closeout is delivered, update it to `complete`.
 
