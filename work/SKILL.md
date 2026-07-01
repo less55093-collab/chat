@@ -46,22 +46,34 @@ The shared `$chat -> $work` handoff contract lives in root `TASK_CAPSULE_SCHEMA.
 - Treat `ready -> assigned -> implementing` as administrative transitions when state is in use. They require a recorded state update but not diff/test verification.
 - Treat `self_check -> main_verify -> done` as verification-gated transitions when state is in use. The main agent must inspect the diff and run or review focused checks before marking a task `done` or activating the next task.
 
+## Git Safety Gate
+
+After confirming the user explicitly invoked `$work`, the first tool action must be checking whether the workspace is inside a git worktree.
+
+1. Run `git rev-parse --is-inside-work-tree`.
+2. If the workspace is not a git repository, run `git init` at the workspace root before any implementation edit, dependency change, generated file update, `WORK_STATE.md` write, or child-agent assignment.
+3. After initializing or confirming git, run `git status --short` and use that status as the pre-edit baseline for preserving user changes.
+4. If `git init` was performed, mention it in the final summary and record it in `WORK_STATE.md` when a state file exists.
+5. Do not create commits, stage files, rewrite history, or run destructive rollback commands unless the user explicitly asked for that git action.
+6. If git is unavailable or initialization fails, stop before editing and ask the user how to proceed.
+
 ## Startup Gate
 
 Before editing implementation files:
 
 1. Confirm the user explicitly invoked `$work`.
-2. Confirm a `$chat` plan exists, or that the user supplied an equivalent atomic task with acceptance criteria.
-3. Identify execution mode: `simple-main`, `state-main`, or `delegated-state`.
-4. Identify plan topology: `linear` or `branched`. If missing, treat the plan as `linear` unless it explicitly describes fallback branches.
-5. Confirm the plan and active task contain the required capsule fields from `TASK_CAPSULE_SCHEMA.md`.
-6. For tool-like or research-backed work, confirm reuse decision, adopted source, adoption path, custom-code boundary, and any Custom Build Justification required by `TASK_CAPSULE_SCHEMA.md`.
-7. Compare the reuse decision against the active task's exact work. If the task asks for a local rebuild of adopted-source functionality without explicit justification, stop before editing.
-8. For a branched plan, confirm each branch has the branch metadata required by `TASK_CAPSULE_SCHEMA.md`, including success criteria, failure criteria, branch-local write scope, rollback boundary, and convergence point.
-9. Inspect git status and relevant diffs so user-owned changes are preserved.
-10. For `state-main` and `delegated-state`, create or refresh root `WORK_STATE.md` with task IDs, branch topology when relevant, statuses, state rules, active task, file-access log, and transition log.
-11. For `simple-main`, skip `WORK_STATE.md` and proceed with a compact main-agent execution loop.
-12. Identify the final whole-change verification commands or manual checks.
+2. Run the Git Safety Gate.
+3. Confirm a `$chat` plan exists, or that the user supplied an equivalent atomic task with acceptance criteria.
+4. Identify execution mode: `simple-main`, `state-main`, or `delegated-state`.
+5. Identify plan topology: `linear` or `branched`. If missing, treat the plan as `linear` unless it explicitly describes fallback branches.
+6. Confirm the plan and active task contain the required capsule fields from `TASK_CAPSULE_SCHEMA.md`.
+7. For tool-like or research-backed work, confirm reuse decision, adopted source, adoption path, custom-code boundary, and any Custom Build Justification required by `TASK_CAPSULE_SCHEMA.md`.
+8. Compare the reuse decision against the active task's exact work. If the task asks for a local rebuild of adopted-source functionality without explicit justification, stop before editing.
+9. For a branched plan, confirm each branch has the branch metadata required by `TASK_CAPSULE_SCHEMA.md`, including success criteria, failure criteria, branch-local write scope, rollback boundary, and convergence point.
+10. Inspect relevant diffs so user-owned changes are preserved.
+11. For `state-main` and `delegated-state`, create or refresh root `WORK_STATE.md` with task IDs, branch topology when relevant, statuses, state rules, active task, file-access log, and transition log.
+12. For `simple-main`, skip `WORK_STATE.md` and proceed with a compact main-agent execution loop.
+13. Identify the final whole-change verification commands or manual checks.
 
 If critical task boundaries are missing, do not improvise a large implementation. Ask the user to return to `$chat` or provide the missing task details.
 

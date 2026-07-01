@@ -127,6 +127,36 @@
 7. `$chat-deep` 输出 `RESEARCH_BRIEF.md`，其中包含推荐方向、为什么不是其他方案、验证策略和 `$work` 可执行交接。
 8. 用户显式调用 `$work` 后，才进入代码实现或项目变更。
 
+## 安装 / 更新
+
+这些技能需要放到 Codex 的技能目录里才能被自动发现。默认安装目录是 `~/.codex/skills`，本仓库根目录的 `SKILL.md` 对应安装后的 `~/.codex/skills/chat/SKILL.md`。
+
+从仓库根目录执行：
+
+```bash
+mkdir -p ~/.codex/skills/chat ~/.codex/skills/work ~/.codex/skills/chat-deep ~/.codex/skills/chat-init ~/.codex/skills/chat-explore
+cp SKILL.md ~/.codex/skills/chat/SKILL.md
+cp -R agents ~/.codex/skills/chat/
+cp -R work/SKILL.md work/agents ~/.codex/skills/work/
+cp chat-deep/SKILL.md ~/.codex/skills/chat-deep/SKILL.md
+cp -R chat-init/SKILL.md chat-init/agents ~/.codex/skills/chat-init/
+cp -R chat-explore/SKILL.md chat-explore/agents ~/.codex/skills/chat-explore/
+```
+
+更新已安装版本时，重新执行上面的命令即可覆盖旧的 skill 文件。覆盖前如果你本地改过 `~/.codex/skills/...` 里的安装版，请先自己保留那部分修改。
+
+安装后应该能看到这些文件：
+
+```text
+~/.codex/skills/chat/SKILL.md
+~/.codex/skills/work/SKILL.md
+~/.codex/skills/chat-deep/SKILL.md
+~/.codex/skills/chat-init/SKILL.md
+~/.codex/skills/chat-explore/SKILL.md
+```
+
+如果 Codex 已经在运行，安装或更新后建议新开一个线程，确保技能元数据重新加载。
+
 ## 项目结构
 
 ```text
